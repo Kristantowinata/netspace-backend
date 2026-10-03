@@ -123,6 +123,11 @@ func (h *Hub) handleSendGroupMsg(msg model.GroupMessage) {
 		return
 	}
 
+	if !group.memberIds[msg.SenderId] {
+		log.Printf("Non-member %v tried to message group %v\n", msg.SenderId, group.name)
+		return
+	}
+
 	newMsg := api.NewGroupMessage{
 		MessageId:   msg.MessageId,
 		GroupId:     msg.GroupId,

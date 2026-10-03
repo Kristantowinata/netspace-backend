@@ -18,6 +18,12 @@ func (h *Handler) handleWs(manager *chat.Manager) http.HandlerFunc {
 		params := r.URL.Query()
 		tokenString := params.Get("token")
 
+		// A logged-out session must not be able to open a new socket either.
+		if h.blacklist.IsBlacklisted(tokenString) {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
 		token, err := h.auth.VerifyToken(tokenString)
 		if err != nil {
 			log.Println("Faield to verify token")

@@ -85,6 +85,17 @@ func (r *Repository) AdminById(adminId string, ctx context.Context) (*model.Admi
 	return &admin, nil
 }
 
+func (r *Repository) UpdateAdminPassword(adminId string, passwordHash string, ctx context.Context) error {
+	const query = `
+		UPDATE admins
+		SET "password" = $1
+		WHERE id = $2
+	`
+
+	_, err := r.db.ExecContext(ctx, query, passwordHash, adminId)
+	return err
+}
+
 func (r *Repository) TotalCheckInRange(start time.Time, end time.Time, ctx context.Context) (int, error) {
 	const query = `
 		SELECT COUNT(*)

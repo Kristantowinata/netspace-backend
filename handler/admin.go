@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/latoiste/netspace/api"
+	"github.com/latoiste/netspace/auth"
 	"github.com/latoiste/netspace/model"
 )
 
@@ -173,10 +174,19 @@ func (h *Handler) handleAdminLogin() http.HandlerFunc {
 			return
 		}
 
-		// TODO: ganti pake hash + insert new admin kalo ada waktu
-		if admin.Password != password {
+		if !auth.CheckPassword(admin.Password, password) {
 			writeLoginError(http.StatusUnauthorized, "Username atau password salah")
 			return
+		}
+
+		// Upgrade legacy plaintext rows to bcrypt on first successful login.
+		// Best-effort: a failure here must not block the login itself.
+		if !auth.IsPasswordHashed(admin.Password) {
+			if hash, err := auth.HashPassword(password); err != nil {
+				log.Println("failed to hash admin password:", err)
+			} else if err := h.repo.UpdateAdminPassword(admin.Id, hash, ctx); err != nil {
+				log.Println("failed to upgrade admin password hash:", err)
+			}
 		}
 
 		token, err := h.auth.GenerateAdminJWT(admin.Id, admin.LocationSlug)
@@ -442,6 +452,24 @@ func (h *Handler) handleForceLogout() http.HandlerFunc {
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
+
+		// Admins may only kick users checked in at their own venue.
+		session, ok := r.Context().Value("SessionData").(model.SessionData)
+		if !ok {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		adminLocationId, err := h.repo.LocationIdBySlug(session.LocationSlug, ctx)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		user, err := h.repo.UserById(userId, ctx)
+		if err != nil || user.LocationId != adminLocationId {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
 
 		if err := h.repo.UpdateUserIsActive(userId, false, ctx); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

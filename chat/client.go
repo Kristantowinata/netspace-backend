@@ -21,6 +21,11 @@ import (
 // active-but-quiet reader's connection alive).
 const idleSafetyTimeout = 35 * time.Minute
 
+// maxInboundFrameBytes caps a single inbound WebSocket frame. Chat events are
+// small JSON objects; anything larger is rejected and the connection closed,
+// so one client can't make the server buffer arbitrarily large payloads.
+const maxInboundFrameBytes = 64 * 1024
+
 type Client struct {
 	Hub          *Hub
 	conn         *websocket.Conn
@@ -75,6 +80,8 @@ func (c *Client) ReadPump() {
 		c.Hub.unregister <- c
 		c.conn.Close()
 	}()
+
+	c.conn.SetReadLimit(maxInboundFrameBytes)
 
 	for {
 		// Refresh the read deadline on every loop. Any inbound frame (including

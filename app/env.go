@@ -31,7 +31,15 @@ func NewEnv() *Env {
 	dbConn := db.OpenDb(ctx)
 	defer cancel()
 
+	// An empty key would make every JWT trivially forgeable (HMAC with an
+	// empty secret), so refuse to start rather than run insecurely.
 	jwtKey := os.Getenv("JWT_SECRET_KEY")
+	if jwtKey == "" {
+		log.Fatal("JWT_SECRET_KEY is not set")
+	}
+	if len(jwtKey) < 32 {
+		log.Println("warning: JWT_SECRET_KEY is shorter than 32 characters; use a long random secret in production")
+	}
 
 	authCredentials := auth.NewAuth([]byte(jwtKey))
 	repo := db.NewRepo(dbConn)

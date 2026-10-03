@@ -174,12 +174,15 @@ UPDATE Locations SET latitude = -6.201249, longitude = 106.782261, geofenceRadiu
 UPDATE Locations SET latitude = -6.138300, longitude = 106.821000, geofenceRadius = 100 WHERE slug = 'koktong';
 UPDATE Locations SET latitude = -6.916800, longitude = 107.609700, geofenceRadius = 100 WHERE slug = 'kopi-braga';
 
--- ── Dev seed: Admins (password plaintext untuk dev; BE belum hashing) ──
+-- ── Dev seed: Admins ──
+-- Passwords are bcrypt hashes of the public demo password "admin123".
+-- Change them before any real deployment. (Rows that still hold plaintext
+-- from older seeds are upgraded to bcrypt automatically on first login.)
 INSERT INTO Admins (id, username, password, role, plan, avatar, name)
 VALUES
-  ('adm-kpl', 'kopiloka', 'admin123', 'Partner', 'Pro Plan', '☕', 'Kopiloka Sudirman'),
-  ('adm-kkt', 'koktong', 'admin123', 'Partner', 'Pro Plan', '🍵', 'Koktong'),
-  ('adm-kbg', 'kopibraga', 'admin123', 'Partner', 'Pro Plan', '☕', 'Kopi Braga');
+  ('adm-kpl', 'kopiloka', '$2a$10$X4lX4ghero6eVKZyotJASufwtnkBAqTrYlmjuOgtaO3vxh9w4VSjy', 'Partner', 'Pro Plan', '☕', 'Kopiloka Sudirman'),
+  ('adm-kkt', 'koktong', '$2a$10$X4lX4ghero6eVKZyotJASufwtnkBAqTrYlmjuOgtaO3vxh9w4VSjy', 'Partner', 'Pro Plan', '🍵', 'Koktong'),
+  ('adm-kbg', 'kopibraga', '$2a$10$X4lX4ghero6eVKZyotJASufwtnkBAqTrYlmjuOgtaO3vxh9w4VSjy', 'Partner', 'Pro Plan', '☕', 'Kopi Braga');
 
 UPDATE Admins SET locationId = (SELECT id FROM Locations WHERE slug = 'kopiloka')
 	WHERE id = 'adm-kpl';

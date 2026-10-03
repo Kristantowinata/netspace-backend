@@ -39,6 +39,7 @@ func (h *Handler) StartServer() {
 	r := chi.NewRouter()
 
 	r.Use(mw.Cors)
+	r.Use(mw.LimitBody)
 
 	r.Get("/ws", h.handleWs(h.manager))
 
@@ -91,6 +92,10 @@ func (h *Handler) StartServer() {
 	server := http.Server{
 		Handler: r,
 		Addr:    ":" + port,
+		// Bound how long a client may take to send headers so slow-loris style
+		// connections can't pile up. Read/Write timeouts are left unset on
+		// purpose: they would also cut long-lived WebSocket connections.
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	log.Println("Server is listening on port " + port)

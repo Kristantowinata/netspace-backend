@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -196,6 +197,13 @@ func (h *Handler) handleGroupHistory() http.HandlerFunc {
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Only members may read a group's history. Answer exactly like a
+		// missing group so outsiders can't probe which group ids exist.
+		if !slices.ContainsFunc(members, func(m model.User) bool { return m.Id == myId }) {
+			http.Error(w, "Group not found", http.StatusNotFound)
 			return
 		}
 
